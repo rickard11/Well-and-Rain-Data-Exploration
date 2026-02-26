@@ -1,3 +1,6 @@
+library(ggplot2)
+library(cowplot)
+library(patchwork)
 gav_gnss<-read.csv("Data/GNSS/tjrn_enu_positions.csv")
 gav_gnss$Date <- as.Date(gav_gnss$doy - 1, origin = paste0(gav_gnss$year, "-01-01"))
 
@@ -54,7 +57,7 @@ c<-ggplot(gnss_E5_26, aes(x=Date)) +
 
 plot_grid(a,b,c,ncol=3)
 
-
+tail(gnss_E5_26)
 
 #######################################################
 ##Remove GNSS and reverse change
@@ -82,5 +85,29 @@ c<-ggplot(gnss_E5_26, aes(x=Date))+
   geom_line(aes(y=gw_change),linewidth=1)+ylim(-5,36)+
   theme_bw()+ggtitle("2026 Water Year")
 
-
 plot_grid(a,b,c,ncol=3)
+
+gnss_E5$rain_mm<-gnss_E5$Rain_in*25.4
+tail(gnss_E5)
+ggplot(gnss_E5, aes(x=Date))+
+  geom_col( aes(y=rain_mm),color="blue") + 
+  geom_line(aes(y=Corrected.mean.ft.below.ground),linewidth=1)+
+  theme_bw()+ggtitle("Escondido 5 Well Depth to Water and Daily Rainfall")+
+  scale_y_reverse()
+
+####Or 2 seperate plots 
+
+a<-ggplot(gnss_E5, aes(x=Date))+ 
+  geom_line(aes(y=Corrected.mean.ft.below.ground),linewidth=1)+
+  theme_bw()+ scale_y_reverse()+ylab("Depth to Water (Feet)")
+
+b<-ggplot(gnss_E5, aes(x=Date))+
+  geom_col( aes(y=Rain_in),color="cornflowerblue") +
+  theme_bw()+ggtitle("Escondido 5 Depth to Water and Daily Rainfall")+
+  scale_y_reverse()+theme(axis.title.x = element_blank(),
+                          axis.text.x = element_blank())+
+  ylab("Rain (Inches)")
+
+b / a + plot_layout(heights = c(1, 3))
+
+ggsave("figures/Escondido_5_Timeseries.png")

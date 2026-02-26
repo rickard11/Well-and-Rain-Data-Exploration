@@ -39,12 +39,16 @@ Site_data<-merge(rain_data,well_data,by=c("Date","Name"))
 Site_data <- Site_data %>%
   mutate(water_year = if_else(month(Date) >= 10, year(Date) + 1, year(Date)))
 
+#merge the raw and corrected data
+Site_data <- Site_data %>%
+  mutate(dtw_final = coalesce(dtw_corrected, ft..below.ground.))
+
 #Calculate the change in water depth
 Site_data <- Site_data %>% group_by(water_year,Name) %>%
   arrange(Date) %>%
-  mutate(start_date = first(Date[!is.na(ft..below.ground.)]),
-         gw_start   = ft..below.ground.[Date == start_date][1],
-         gw_change  = gw_start - ft..below.ground.) %>%
+  mutate(start_date = first(Date[!is.na(dtw_final)]),
+         gw_start   = dtw_final[Date == start_date][1],
+         gw_change  = gw_start - dtw_final) %>%
          ungroup()
 
 #Calculate cumulative rainfall
@@ -65,7 +69,7 @@ for (i in unique(Site_data$Name)){
       title = "Rainfall, Cumulative Rainfall, and Groundwater Response",
       subtitle = i) + theme_bw()+  
     scale_x_date(date_labels = "%b", date_breaks = "2 month")+
-    theme_bw() + theme( strip.text = element_text(size = 12, face = "bold"),
+    theme( strip.text = element_text(size = 12, face = "bold"),
                         axis.title = element_text(size = 16),
                         axis.text = element_text(size=12))
   print(q)
@@ -91,4 +95,51 @@ Site_summary <- Site_data %>%
 
 Site_summary$est_recharge<-round(((Site_summary$first_week_avg-Site_summary$last_week_avg)*0.1)*12,digits=1)
 Site_summary$p_recharge<-round((Site_summary$est_recharge/Site_summary$Sum_Rain)*100,digits=1)
+write.cs
+Site_data_clean<-Site_data[Site_data$Name!="Pixley Tulare Capinero Creek"&
+                             Site_data$Name!="Las Piletas Cooper plus"&
+                             Site_data$Name!="Randall Lower Tweedy"&
+                             Site_data$Name!="Randall Cactus Pasture"&
+                             Site_data$Name!="JLDP Tinta 10",]
 
+A<-ggplot(Site_data_clean, aes(Date)) +
+  geom_line(aes(y = gw_change, color=Name),linewidth = 1) +
+  facet_wrap(~ water_year, nrow = 1, scales = "free_x") +labs(
+    x = NULL,y = "Rainfall / GW Change",
+    title = "Rainfall, Cumulative Rainfall, and Groundwater Response") + theme_bw()+  
+  scale_x_date(date_labels = "%b", date_breaks = "2 month")+
+  theme( strip.text = element_text(size = 12, face = "bold"),
+                      axis.title = element_text(size = 16),
+                      axis.text = element_text(size=12))
+
+ggsave("figures/Calgro_GW_response.png",A)
+
+Site_data_JLDP<-Site_data[Site_data$Name=="JLDP Escondido 2"|
+                             Site_data$Name=="JLDP Escondido 3"|
+                             Site_data$Name=="JLDP Tinta 5"|
+                             Site_data$Name=="JLDP Tinta 6"|
+                             Site_data$Name=="JLDP Oaks 5",]
+
+J<-ggplot(Site_data_JLDP, aes(Date)) +
+  geom_line(aes(y = gw_change, color=Name),linewidth = 1) +
+  facet_wrap(~ water_year, nrow = 1, scales = "free_x") +labs(
+    x = NULL,y = "GW Change",
+    title = "Groundwater Response") + theme_bw()+  
+  scale_x_date(date_labels = "%b", date_breaks = "2 month")+
+  theme( strip.text = element_text(size = 12, face = "bold"),
+                      axis.title = element_text(size = 16),
+                      axis.text = element_text(size=12))
+
+ggsave("figures/JLDP_GW_response.png",J)
+JLDP_rain_summary<-aggregate(`Rain (in)`~Name + water_year,Site_data_JLDP,FUN=sum)
+
+JLDP_rain_summary$water_year<-as.character(JLDP_rain_summary$water_year)
+
+JR<-ggplot(JLDP_rain_summary, aes(x=water_year)) +
+  geom_boxplot(aes(y=`Rain (in)`)) +
+  geom_jitter(aes(y =`Rain (in)`, color=Name))+labs(
+    title = "Yearly Rainfall") +
+  theme_bw() + theme( strip.text = element_text(size = 12, face = "bold"),
+                      axis.title = element_text(size = 16),
+                      axis.text = element_text(size=12))
+ggsave("figures/JLDP_Yearly_rainfall.png",JR)

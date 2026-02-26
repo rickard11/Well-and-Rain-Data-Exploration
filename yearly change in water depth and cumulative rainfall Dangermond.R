@@ -39,8 +39,11 @@ p <- ggplot(E3_plot, aes(Date)) +
   facet_wrap(~ water_year, nrow = 1, scales = "free_x") +labs(
     x = NULL,y = "Rainfall / GW Change",
     title = "Rainfall, Cumulative Rainfall, and Groundwater Response",
-    subtitle = "Escondido 3 Well") +
-  theme_bw() + theme( strip.text = element_text(size = 12, face = "bold"))
+    subtitle = "Escondido 3 Well") +  
+  scale_x_date(date_labels = "%b", date_breaks = "2 month")+
+  theme_bw() + theme( strip.text = element_text(size = 12, face = "bold"),
+                      axis.title = element_text(size = 16),
+                      axis.text = element_text(size=12))
 p
 
 ################################################################################
