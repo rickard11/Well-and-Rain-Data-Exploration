@@ -1,28 +1,68 @@
-E5_new<-read.csv("Data/GNSS/Escondido 5 20231001-20260225 Corrected.csv")
-E5_new$Date<-as.Date(E5_new$Date.and.Time,format="%m/%d/%Y")
-E5_new_daily<-aggregate(Corrected.ft.below.ground~Date,E5_new,FUN=mean)
+#Clean and automate hydrographs
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
 
-E5_rain<-read.csv("Data/GNSS/Escondido 5 20231001-20260225 Corrected-daily.csv")
-E5_rain<-E5_rain[,c(1,6)]
-E5_rain$Date<-as.Date(E5_rain$Date,format="%m/%d/%Y")
+#Read in allrain data
+folder_path <- "Data/Rain/2-10-2026/"
+files <- list.files(folder_path, pattern = "\\.csv$", full.names = TRUE)
+get_rain_name <- function(filename) {
+  name <- basename(filename)
+  name <- str_remove(name, " Rain.*")
+  return(name)}
+rain_data <- files %>%
+  set_names(map_chr(., get_rain_name)) %>%
+  map(read_csv)
 
-E5_all<-merge(E5_rain,E5_new_daily,by="Date")
-tail(E5_all)
-head(E5_all)
-####Or 2 seperate plots 
+rain_data <- map_dfr(files, ~ read_csv(.x) %>%
+                       mutate(Name = get_rain_name(.x)))
+rain_data$Date<-as.Date(rain_data$Date,format="%Y-%m-%d (%a)")
 
-a<-ggplot(E5_all, aes(x=Date))+ 
-  geom_line(aes(y=Corrected.ft.below.ground),linewidth=1)+
-  theme_bw()+ scale_y_reverse()+ylab("Depth to Water (Feet)")
+#Define Water Year
+rain_data <- rain_data %>%
+  mutate(water_year = if_else(month(Date) >= 10, year(Date) + 1, year(Date)))
+#calculate yearly statistics
 
-b<-ggplot(E5_all, aes(x=Date))+
-  geom_col( aes(y=Rain_in),color="cornflowerblue") +
-  theme_bw()+ggtitle("Escondido 5 Depth to Water and Daily Rainfall")+
-  scale_y_reverse()+theme(axis.title.x = element_blank(),
-                          axis.text.x = element_blank())+
-  ylab("Rain (Inches)")
+#add lat long
+unique(rain_data$Name)
+loc<-read.csv("Data/JLDP_well_location.csv")
 
-b / a + plot_layout(heights = c(1, 3))
+Rain_map<-left_join(rain_data,loc,by="Name")
+Rain_map_2026_storm<-Rain_map[Rain_map$Date>="2025-12-20" & Rain_map$Date<="2026-01-10",]
+Rain_map_2026_summary<- Rain_map_2026_storm %>% 
+  group_by(Name) %>% 
+  summarise(rain= sum(`Rain (in)`)) %>% 
+  ungroup()
 
-ggsave("figures/Escondido_5_Timeseries_2.eps")
-#
+Rain_map_2026_summary<-Rain_map_2026_summary[Rain_map_2026_summary$Name!="JLDP Gaspar 1" &
+                                               Rain_map_2026_summary$Name!="JLDP Oaks 5" &
+                                               Rain_map_2026_summary$Name!="JLDP Tinta 1"&
+                                               Rain_map_2026_summary$Name!="JLDP Wood Canyon",]
+Rain_map_2026_summary<-as.data.frame(Rain_map_2026_summary)
+Rain_map_2026_summary<-merge(Rain_map_2026_summary,loc,by="Name")
+
+
+#map
+library(sf)
+library(ggplot2)
+library(viridis)
+
+ca_map <- map_data("state", region = "california")
+
+x_range <- range(Rain_map_2026_summary$x)
+y_range <- range(Rain_map_2026_summary$y)
+
+ggplot() +
+  geom_polygon(data = ca_map,
+               aes(x = long, y = lat, group = group),
+               fill = "gray90", color = "white") +
+  geom_point(data = Rain_map_2026_summary,
+             aes(x = x, y = y, color = rain),
+             size = 4) +
+  scale_color_viridis_c(name = "Total Rainfall") +
+  coord_quickmap(
+    xlim = x_range + c(-0.01, 0.01),
+    ylim = y_range + c(-0.01, 0.01)
+  ) +
+  theme_minimal()
+

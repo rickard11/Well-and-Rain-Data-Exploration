@@ -19,7 +19,7 @@ apply_corrections <- function(df, corrections) {
 }
 
 ## Escondido 3 
-E3_well<-read.csv("Data/well/2-11-2026/JLDP/JLDP Escondido 3 Well - 20240101-20260210.csv")
+E3_well<-read.csv("Data/well/2-11-2026/JLDP Escondido 3 Well - 20240101-20260210.csv")
 E3_well <- remove_last_n(E3_well, n=3)
 E3_well$Date.and.Time<-as.POSIXct(E3_well$Date.and.Time)
 E3_well$Date<-as.Date(E3_well$Date.and.Time)
@@ -161,7 +161,7 @@ write.csv(df_corrected,"Data/well/Corrected/JLDP Oaks 5_well_daily_corrected_02_
 
 ################################################################################
 ## Gaspar 1
-G1_well<-read.csv("Data/well/2-11-2026/JLDP/JLDP Gaspar 1 Well - 20240101-20260211.csv")
+G1_well<-read.csv("Data/well/2-11-2026/JLDP Gaspar 1 Well - 20240101-20260211.csv")
 tail(G1_well)
 G1_well <- remove_last_n(G1_well, n=2)
 G1_well$Date.and.Time<-as.POSIXct(G1_well$Date.and.Time)
@@ -303,7 +303,7 @@ write.csv(T1_daily,"Data/well/Corrected/JLDP Tinta 1_well_daily_corrected_02_10_
 
 ################################################################################
 ## Tinta 10
-T10_well<-read.csv("Data/well/2-11-2026/JLDP/JLDP Tinta 10 Well - 20240101-20260211.csv")
+T10_well<-read.csv("Data/well/2-11-2026/JLDP Tinta 10 Well - 20240101-20260211.csv")
 tail(T10_well)
 #T10_well <- remove_last_n(T10_well, n=1)
 T10_well$Date.and.Time<-as.POSIXct(T10_well$Date.and.Time)
