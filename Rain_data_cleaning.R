@@ -18,17 +18,14 @@ rain_data$Date<-as.Date(rain_data$Date,format="%Y-%m-%d (%a)")
 #download well coord and merge with rain data
 loc<-read.csv("Data/JLDP_well_location.csv")
 rain_site_data<-left_join(rain_data,loc,by="Name")
-# df is your data frame, and YourColumn is the name of the column you want to filter
-rain_site_data <- rain_site_data[grepl("JLDP", rain_data$Name), ]
+
+JLDP_rain_site_data <- rain_site_data[grepl("JLDP", rain_site_data$Name), ]
 
 
 
 
-
-#Looking for 0 values in nearby rain gauges. Start by defining nearby as 10 meters
-##Need to redo for smooth rerun- I accidentally made this work somehow.
-##Could possibly remove this section and flag based on rain from top 2 in cor matrix below.
-rain_sf <- rain_site_data %>%
+#Transform csv to a location compatable datatype and compute the nearest neighbors
+rain_sf <- JLDP_rain_site_data %>%
   st_as_sf(coords = c("x", "y"), crs = 4326) %>%
   st_transform(3310)   # California Albers (meters)
 
@@ -37,7 +34,23 @@ stations <- rain_sf %>%
   slice(1) %>%
   ungroup()
 
-rain_flagged <- rain_site_data %>%
+# distance matrix (in meters)
+dist_mat <- st_distance(stations)
+
+# convert to numeric matrix
+dist_mat <- as.matrix(dist_mat)
+
+# set diagonal to NA so a station isn't its own neighbor
+diag(dist_mat) <- NA
+
+# get k nearest neighbors for each station (currently set to 3, can change in future)
+neighbors <- lapply(1:nrow(dist_mat), function(i) {
+  order(dist_mat[i, ])[1:3]})
+
+#Convert from numbered sites to named site (list of neighbors is still numeric)
+names(neighbors) <- stations$Name
+
+rain_flagged <- JLDP_rain_site_data %>%
   group_by(Date) %>%
   mutate(flag_zero_suspicious = sapply(1:n(), function(i) {
       # define the current station
@@ -50,10 +63,10 @@ rain_flagged <- rain_site_data %>%
       # check if any neighbor has rain > 0.25
       any(`Rain (in)`[Name %in% neighbor_names] > 0.25, na.rm = TRUE) }) ) %>%
   ungroup()
-write.csv(rain_flagged,"Data/processed/Rain_data_flagged_long.csv")
+
 
 #Fill in dates for missing days of data (ex when the battery dies)
-rain_flagged <- rain_flagged %>%
+JLDP_rain_site_data <- JLDP_rain_site_data %>%
   group_by(Name) %>%
   complete(Date = seq(min(Date), as.Date("2026-02-10"), by = "day") ) %>%
   ungroup()
@@ -61,6 +74,104 @@ rain_flagged <- rain_flagged %>%
 rain_flagged <- rain_flagged %>%
   mutate( flag_zero_suspicious = ifelse(is.na(flag_zero_suspicious),
     TRUE,flag_zero_suspicious))
+
+rain_wide <- JLDP_rain_site_data %>%
+  select(Date, Name, `Rain (in)`) %>%
+  pivot_wider(names_from = Name, values_from = `Rain (in)`)
+
+cor_mat <- rain_wide %>%
+  select(-Date) %>%
+  cor(use = "pairwise.complete.obs")
+
+
+get_best_neighbor <- function(station, neighbors, cor_mat) {
+  neighs <- neighbors[[station]]
+  
+  # convert indices → names if needed
+  if (is.numeric(neighs)) {
+    neighs <- colnames(cor_mat)[neighs]
+  }
+  
+  # get correlations
+  cors <- cor_mat[station, neighs]
+  
+  # remove NA
+  cors <- cors[!is.na(cors)]
+  if (length(cors) == 0) return(NA)
+  # return highest correlation neighbor
+  names(which.max(cors))
+}
+
+stations <- colnames(cor_mat)
+
+donor_table <- tibble(
+  station = stations,
+  best_neighbor = map_chr(stations, ~ get_best_neighbor(.x, neighbors, cor_mat)))
+
+
+fill_with_regression <- function(df, donor_table) {
+  df_filled <- df
+  for (i in seq_len(nrow(donor_table))) {
+    s <- donor_table$station[i]
+    n <- donor_table$best_neighbor[i]
+    if (is.na(n)) next
+    
+    x <- df[[n]]
+    y <- df[[s]]
+    
+    ok <- !is.na(x) & !is.na(y)
+    
+    if (sum(ok) < 5) next  # not enough data
+    
+    fit <- lm(y ~ x1 + x2)
+    
+    missing_idx <- is.na(y) & !is.na(x)
+    
+    df_filled[[s]][missing_idx] <- predict(
+      fit,
+      newdata = data.frame(x = x[missing_idx])
+    )
+  }
+  
+  df_filled
+}
+
+
+rain_filled <- fill_with_regression(rain_wide, donor_table)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Not sure this is neccessary- it will loose the significance of the flags.
+
 
 ##Now transform to wide
 rain_wide <- rain_flagged %>%
@@ -174,7 +285,7 @@ rain_imputed %>%
   filter(Date == as.Date("2026-01-04"))
 
 #Need to go back and make sure there are NA values for dates when rain samplers went out.
-write.csv(rain_imputed,"Data/processed/JLDP_rain_imputed_2_25_2026.csv")
+#write.csv(rain_imputed,"Data/processed/JLDP_rain_imputed_2_25_2026.csv")
 
 
 
