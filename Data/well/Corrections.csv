@@ -1,0 +1,21 @@
+Name,Start_Date,End_Date,offset,action,reason
+Escondido 2,7/23/2025,NA,0.63,offset,Maintenance Offset
+Escondido 3,7/24/2025,NA,1.75,offset,Maintenance Offset
+Oaks 5,2/27/2025,NA,-1.01,offset,Maintenance Offset
+Jalma vaqueros,4/16/2025,NA,-2.5,offset,Maintenance Offset
+Quail Canyon,9/18/2025,NA,2,offset,Maintenance Offset
+Tinta 10,1/1/2024,9/20/2024,-40.2,offset,Initial programming issue
+Wood Canyon,9/18/2025,NA,0.7,offset,Maintenance Offset
+Cooper,12/12/2024,4/4/2025,18,offset,Initial programming issue
+Aflalo,12/9/2025,NA,-1.2,offset,Maintenance Offset
+Tinta 5,5/25/2024,5/26/2024,NA,Remove,Momentary malfunction
+Tinta 10,9/20/2024,9/21/2024,NA,Remove,Momentary malfunction
+Quail Canyon,9/18/2025,9/19/2025,NA,Remove,Momentary malfunction
+Prisoners,11/3/2025,11/18/2025,NA,Remove,Remove data before deployment
+Oaks 5,2/27/2025,2/28/2025,NA,Remove,Momentary malfunction
+Oaks 1,8/11/2025,8/12/2025,NA,Remove,Momentary malfunction
+Aflalo,12/4/2025,12/9/2025,NA,Remove,Ranchbot software updates
+B and C,9/17/2025,9/18/2025,NA,Remove,Momentary malfunction
+Escondido 3,7/24/2025,7/25/2025,NA,Remove,Momentary malfunction
+Jalama Vaqueros,3/16/2024,3/17/2024,NA,Remove,Momentary malfunction
+NE Corner,12/6/2024,12/13/2024,NA,Remove,Remove data before deployment
