@@ -82,7 +82,7 @@ rain_wide <- JLDP_rain_site_data %>%
 cor_mat <- rain_wide %>%
   select(-Date) %>%
   cor(use = "pairwise.complete.obs")
-
+#write.csv(cor_mat,"Data/processed/Rainfall_correlatioon_matrix.csv")
 
 get_best_neighbor <- function(station, neighbors, cor_mat) {
   neighs <- neighbors[[station]]
