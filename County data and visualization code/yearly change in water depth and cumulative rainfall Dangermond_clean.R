@@ -78,6 +78,48 @@ for (i in unique(Site_data$Name)){
 }
 
 
+#Calculate the change in water depth
+Site_data2 <- Site_data %>% group_by(Name) %>%
+  arrange(Date) %>%
+  mutate(start_date = first(Date[!is.na(dtw_final)]),
+         gw_start   = dtw_final[Date == start_date][1],
+         gw_change  = gw_start - dtw_final) %>%
+  ungroup()
+
+Site_data2 <- Site_data2 %>% group_by(water_year,Name) %>%
+  arrange(Date) %>%
+  mutate(rain = replace_na(`Rain (in)`, 0),cum_rain = cumsum(`Rain (in)`)) %>%
+  ungroup()
+str(Site_data2)
+
+for (i in unique(Site_data2$Name)){
+  p<-Site_data2[Site_data2$Name==i,]
+  q<- ggplot(p, aes(Date)) +
+    geom_col(aes(y = rain),fill = "steelblue") +
+    geom_line(aes(y = gw_change),linewidth = 1)+labs(
+      x = NULL,y = "Rainfall / GW Change",
+      title = "Rainfall, Cumulative Rainfall, and Groundwater Response",
+      subtitle = i) + theme_bw()+  
+    scale_x_date(date_labels = "%b", date_breaks = "2 month")+
+    theme( strip.text = element_text(size = 12, face = "bold"),
+           axis.title = element_text(size = 16),
+           axis.text = element_text(size=12))
+  print(q)
+  filename <- paste0("my_plot_", i, ".png")
+  ggsave(filename = filename, plot = q)
+}
+unique(Site_data2$Name)
+LP<-Site_data2[Site_data2$Name=="Las Piletas Cooper plus",]
+ggplot(LP, aes(Date)) +
+  geom_col(aes(y = rain),fill = "steelblue") +
+  geom_line(aes(y = gw_change),linewidth = 1)+labs(
+    x = NULL,y = "Rainfall / GW Change",
+    title = "Rainfall, Cumulative Rainfall, and Groundwater Response",
+    subtitle = i) + theme_bw()+  
+  scale_x_date(date_labels = "%b", date_breaks = "2 month")+
+  theme( strip.text = element_text(size = 12, face = "bold"),
+         axis.title = element_text(size = 16),
+         axis.text = element_text(size=12))+ylim(-5,5)
 
 # Find average depth of first week and average depth at last week of each water year and site and make a new table
 
